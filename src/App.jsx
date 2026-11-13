@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ConfirmDialog, Toasts } from './components/Chrome'
 import Attendance from './pages/Attendance'
 import Dashboard from './pages/Dashboard'
 import Replacement from './pages/Replacement'
 import Shifts from './pages/Shifts'
 import Volunteers from './pages/Volunteers'
-import { AppStoreProvider, useAppStore } from './store/AppStore'
+import { AppStoreProvider } from './store/AppStore'
+import { useAppStore } from './store/useAppStore'
 
 const NAV = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -20,11 +21,10 @@ function Shell() {
   const [page, setPage] = useState('dashboard')
   const [menuOpen, setMenuOpen] = useState(false)
 
-  useEffect(() => {
+  const go = (id) => {
+    setPage(id)
     setMenuOpen(false)
-  }, [page])
-
-  const go = (id) => setPage(id)
+  }
 
   return (
     <div className="app-shell">

@@ -1,6 +1,6 @@
 import { filledCount } from '../lib/matching'
 import { formatDate, formatTime, initials, relativeTime } from '../lib/utils'
-import { useAppStore } from '../store/AppStore'
+import { useAppStore } from '../store/useAppStore'
 
 export function StatusBadge({ value }) {
   return <span className={`badge badge-${value}`}>{value.replace('-', ' ')}</span>

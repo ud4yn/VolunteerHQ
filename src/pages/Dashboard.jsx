@@ -1,7 +1,7 @@
 import { ActivityItem, FillMeter, StatusBadge } from '../components/Chrome'
 import { filledCount, isUnderstaffed } from '../lib/matching'
 import { formatDate, formatTime } from '../lib/utils'
-import { useAppStore } from '../store/AppStore'
+import { useAppStore } from '../store/useAppStore'
 
 export default function Dashboard({ onNavigate }) {
   const { state, metrics, understaffedShifts, setFocusShiftId } = useAppStore()

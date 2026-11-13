@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Avatar, StatusBadge } from '../components/Chrome'
 import { formatDate, formatTime } from '../lib/utils'
-import { useAppStore } from '../store/AppStore'
+import { useAppStore } from '../store/useAppStore'
 
 const FILTERS = ['all', 'registered', 'checked-in', 'checked-out', 'absent', 'dropped']
 
@@ -17,8 +17,8 @@ export default function Attendance() {
     return state.assignments
       .map((item) => ({
         ...item,
-        volunteer: store.volunteer(item.volunteerId),
-        shift: store.shift(item.shiftId),
+        volunteer: state.volunteers.find((volunteer) => volunteer.id === item.volunteerId),
+        shift: state.shifts.find((shift) => shift.id === item.shiftId),
       }))
       .filter((item) => item.volunteer && item.shift)
       .filter((item) => (filter === 'all' ? true : item.status === filter))

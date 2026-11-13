@@ -1,16 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { FillMeter, ShiftMeta, StatusBadge } from '../components/Chrome'
 import { filledCount, isUnderstaffed, rankReplacements, requiredSkillsFor } from '../lib/matching'
-import { useAppStore } from '../store/AppStore'
+import { useAppStore } from '../store/useAppStore'
 
 export default function Replacement() {
   const store = useAppStore()
   const { state, focusShiftId, setFocusShiftId, simulateDropout, assignReplacement } = store
-  const [selectedId, setSelectedId] = useState(focusShiftId || state.shifts[0]?.id || '')
-
-  useEffect(() => {
-    if (focusShiftId) setSelectedId(focusShiftId)
-  }, [focusShiftId])
+  const [localSelectedId, setLocalSelectedId] = useState(state.shifts[0]?.id || '')
+  const selectedId = focusShiftId || localSelectedId
 
   const shift = state.shifts.find((item) => item.id === selectedId)
   const crew = shift
@@ -35,7 +32,7 @@ export default function Replacement() {
         <select
           value={selectedId}
           onChange={(event) => {
-            setSelectedId(event.target.value)
+            setLocalSelectedId(event.target.value)
             setFocusShiftId(event.target.value)
           }}
         >
@@ -87,7 +84,7 @@ export default function Replacement() {
                         className="btn danger-ghost"
                         onClick={async () => {
                           const id = await simulateDropout(item.id)
-                          if (id) setSelectedId(id)
+                          if (id) setLocalSelectedId(id)
                         }}
                       >
                         Simulate dropout

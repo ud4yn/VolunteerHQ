@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { SKILLS, SLOTS, VOLUNTEER_STATUSES } from '../data/catalog'
 import { Avatar, Field, Modal, StatusBadge } from '../components/Chrome'
 import { formatDate, formatTime } from '../lib/utils'
-import { useAppStore } from '../store/AppStore'
+import { useAppStore } from '../store/useAppStore'
 
 const emptyVolunteer = {
   name: '',

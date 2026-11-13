@@ -3,7 +3,7 @@ import { LOCATIONS, ROLES, SHIFT_STATUSES } from '../data/catalog'
 import { Field, FillMeter, Modal, ShiftMeta, StatusBadge } from '../components/Chrome'
 import { filledCount, isUnderstaffed } from '../lib/matching'
 import { formatDate, formatTime } from '../lib/utils'
-import { useAppStore } from '../store/AppStore'
+import { useAppStore } from '../store/useAppStore'
 
 const emptyShift = {
   title: '',

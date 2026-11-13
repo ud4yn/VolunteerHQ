@@ -1,10 +1,9 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { AppStoreContext } from './AppStoreContext'
 import { createSeedState } from '../data/seed'
 import { filledCount, isUnderstaffed } from '../lib/matching'
 import { computeMetrics } from '../lib/metrics'
 import { createId, isValidEmail, STORAGE_KEY, timeToMinutes } from '../lib/utils'
-
-const AppStoreContext = createContext(null)
 
 function loadState() {
   try {
@@ -345,19 +344,10 @@ export function AppStoreProvider({ children }) {
     },
   }
 
-  const value = useMemo(
-    () => ({
-      ...api,
-      understaffedShifts: state.shifts.filter((shift) => isUnderstaffed(shift, state.assignments)),
-    }),
-    [state, toasts, confirm, focusShiftId],
-  )
+  const value = {
+    ...api,
+    understaffedShifts: state.shifts.filter((shift) => isUnderstaffed(shift, state.assignments)),
+  }
 
   return <AppStoreContext.Provider value={value}>{children}</AppStoreContext.Provider>
-}
-
-export function useAppStore() {
-  const ctx = useContext(AppStoreContext)
-  if (!ctx) throw new Error('useAppStore must be used within AppStoreProvider')
-  return ctx
 }
