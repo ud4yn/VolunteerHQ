@@ -1,5 +1,5 @@
 import { ROLE_SKILLS } from '../data/catalog'
-import { shiftSlot } from './utils'
+import { shiftSlot, timeToMinutes } from './utils'
 
 export function requiredSkillsFor(role) {
   return ROLE_SKILLS[role] || []
@@ -20,18 +20,76 @@ export function isUnderstaffed(shift, assignments) {
   return filledCount(assignments, shift.id) < shift.capacity
 }
 
-export function rankReplacements(shift, volunteers, assignments) {
-  const taken = new Set(
-    activeAssignments(assignments, shift.id).map((item) => item.volunteerId),
+function isLiveAssignment(assignment) {
+  return !['dropped', 'absent', 'checked-out'].includes(assignment.status)
+}
+
+export function volunteerShiftEligibility(shift, volunteer, assignments, shifts) {
+  if (volunteer.status !== 'active') {
+    return { eligible: false, message: 'Volunteer is inactive.' }
+  }
+
+  const sameShiftAssignments = assignments.filter(
+    (item) => item.shiftId === shift.id && item.volunteerId === volunteer.id,
   )
+
+  if (sameShiftAssignments.some((item) => item.status === 'dropped')) {
+    return {
+      eligible: false,
+      message: 'This volunteer already dropped out of this shift.',
+    }
+  }
+
+  if (sameShiftAssignments.some(isLiveAssignment)) {
+    return { eligible: false, message: 'Already assigned to this shift.' }
+  }
+
+  const slot = shiftSlot(shift)
+
+  if (!volunteer.availability?.includes(slot)) {
+    return {
+      eligible: false,
+      message: `Not available for ${slot}.`,
+    }
+  }
+
+  const start = timeToMinutes(shift.startTime)
+  const end = timeToMinutes(shift.endTime)
+
+  const conflict = assignments.find((item) => {
+    if (item.volunteerId !== volunteer.id || !isLiveAssignment(item)) return false
+
+    const otherShift = shifts.find((candidate) => candidate.id === item.shiftId)
+    if (!otherShift || otherShift.id === shift.id) return false
+    if (['cancelled', 'completed'].includes(otherShift.status)) return false
+    if (otherShift.date !== shift.date) return false
+
+    const otherStart = timeToMinutes(otherShift.startTime)
+    const otherEnd = timeToMinutes(otherShift.endTime)
+
+    return start < otherEnd && otherStart < end
+  })
+
+  if (conflict) {
+    return {
+      eligible: false,
+      message: 'Already assigned to an overlapping shift.',
+    }
+  }
+
+  return { eligible: true, message: 'Available and schedule-compatible.' }
+}
+
+export function rankReplacements(shift, volunteers, assignments, shifts = []) {
   const needed = requiredSkillsFor(shift.role)
   const slot = shiftSlot(shift)
 
   return volunteers
-    .filter((volunteer) => volunteer.status === 'active' && !taken.has(volunteer.id))
+    .filter((volunteer) =>
+      volunteerShiftEligibility(shift, volunteer, assignments, shifts).eligible,
+    )
     .map((volunteer) => {
       const matchedSkills = volunteer.skills.filter((skill) => needed.includes(skill))
-      const availabilityHit = volunteer.availability.includes(slot)
       let score = 0
       const reasons = []
 
@@ -39,24 +97,22 @@ export function rankReplacements(shift, volunteers, assignments) {
         score += matchedSkills.length * 32
         reasons.push(`${matchedSkills.length} matching skill${matchedSkills.length > 1 ? 's' : ''}`)
       }
+
       if (volunteer.skills.includes(shift.role)) {
         score += 18
         reasons.push('direct role experience')
       }
-      if (availabilityHit) {
-        score += 40
-        reasons.push(`free for ${slot}`)
-      } else {
-        score -= 12
-        reasons.push('availability gap')
-      }
+
+      score += 40
+      reasons.push(`available for ${slot}`)
 
       const otherLoad = assignments.filter(
         (item) =>
           item.volunteerId === volunteer.id &&
-          item.status !== 'dropped' &&
-          item.status !== 'absent',
+          item.shiftId !== shift.id &&
+          isLiveAssignment(item),
       ).length
+
       if (otherLoad === 0) {
         score += 8
         reasons.push('no other live assignments')
@@ -66,11 +122,12 @@ export function rankReplacements(shift, volunteers, assignments) {
       }
 
       score = Math.max(0, Math.min(100, score))
+
       return {
         volunteer,
         score,
         matchedSkills,
-        availabilityHit,
+        availabilityHit: true,
         slot,
         reasons,
       }

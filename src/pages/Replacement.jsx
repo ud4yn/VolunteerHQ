@@ -16,8 +16,8 @@ export default function Replacement() {
   const activeCrew = crew.filter((item) => item.status !== 'dropped')
   const ranked = useMemo(() => {
     if (!shift) return []
-    return rankReplacements(shift, state.volunteers, state.assignments)
-  }, [shift, state.volunteers, state.assignments])
+    return rankReplacements(shift, state.volunteers, state.assignments, state.shifts)
+  }, [shift, state.volunteers, state.assignments, state.shifts])
 
   return (
     <div className="page">

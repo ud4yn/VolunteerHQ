@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AppStoreContext } from './AppStoreContext'
 import { createSeedState } from '../data/seed'
-import { filledCount, isUnderstaffed } from '../lib/matching'
+import { filledCount, isUnderstaffed, volunteerShiftEligibility } from '../lib/matching'
 import { computeMetrics } from '../lib/metrics'
 import { createId, isValidEmail, STORAGE_KEY, timeToMinutes } from '../lib/utils'
 
@@ -230,19 +230,32 @@ export function AppStoreProvider({ children }) {
     registerVolunteer(shiftId, volunteerId, options = {}) {
       const shift = shiftById(state, shiftId)
       const volunteer = volunteerById(state, volunteerId)
-      if (!shift || !volunteer) return { ok: false, message: 'Missing shift or volunteer.' }
-      if (volunteer.status !== 'active') return { ok: false, message: 'Inactive volunteers cannot be registered.' }
+
+      if (!shift || !volunteer) {
+        return { ok: false, message: 'Missing shift or volunteer.' }
+      }
+
       if (shift.status === 'cancelled' || shift.status === 'completed') {
         return { ok: false, message: 'This shift is closed.' }
       }
-      const already = state.assignments.find(
-        (item) => item.shiftId === shiftId && item.volunteerId === volunteerId && item.status !== 'dropped',
-      )
-      if (already) return { ok: false, message: 'Already registered on this shift.' }
+
       if (filledCount(state.assignments, shiftId) >= shift.capacity) {
         return { ok: false, message: 'Shift is at capacity.' }
       }
+
+      const eligibility = volunteerShiftEligibility(
+        shift,
+        volunteer,
+        state.assignments,
+        state.shifts,
+      )
+
+      if (!eligibility.eligible) {
+        return { ok: false, message: eligibility.message }
+      }
+
       const asReplacement = options.asReplacement
+
       mutate((draft) => {
         draft.assignments.push({
           id: createId('a'),
@@ -250,6 +263,7 @@ export function AppStoreProvider({ children }) {
           volunteerId,
           status: 'registered',
         })
+
         log(
           draft,
           asReplacement ? 'replace' : 'assign',
@@ -258,10 +272,12 @@ export function AppStoreProvider({ children }) {
             : `${volunteer.name} registered for ${shift.title}.`,
         )
       })
+
       toast(
         asReplacement ? `${volunteer.name} assigned as replacement.` : `${volunteer.name} registered.`,
         'success',
       )
+
       return { ok: true }
     },
 
